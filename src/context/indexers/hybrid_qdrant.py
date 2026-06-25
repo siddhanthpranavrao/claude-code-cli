@@ -1,5 +1,6 @@
 import os
 from langchain_qdrant import QdrantVectorStore, RetrievalMode, FastEmbedSparse
+from langchain_qdrant.qdrant import QdrantVectorStoreError
 from langchain_core.documents import Document
 from qdrant_client import QdrantClient
 
@@ -49,14 +50,18 @@ def index_codebase(repo_path: str) -> QdrantVectorStore:
        info = client.get_collection(collection_name)
        if info.points_count > 0:
            logger.info(f"Loaded existing index with {info.points_count} chunks")
-           return QdrantVectorStore.from_existing_collection(
-               embedding=embedder,
-               sparse_embedding=FastEmbedSparse(model_name="Qdrant/bm25"),
-               retrieval_mode=retrieval_mode,
-               url=url,
-               api_key=api_key,
-               collection_name=collection_name,
-           )
+           try:
+               return QdrantVectorStore.from_existing_collection(
+                   embedding=embedder,
+                   sparse_embedding=FastEmbedSparse(model_name="Qdrant/bm25"),
+                   retrieval_mode=retrieval_mode,
+                   url=url,
+                   api_key=api_key,
+                   collection_name=collection_name,
+               )
+           except QdrantVectorStoreError as exc:
+               logger.warning(f"Existing Qdrant collection is incompatible with hybrid mode; recreating it: {exc}")
+               client.delete_collection(collection_name)
 
 
    logger.info(f"Starting hybrid indexing of {repo_path}")

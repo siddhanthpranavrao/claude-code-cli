@@ -1,6 +1,7 @@
 PYTHON_VERSION ?= 3.13
 APP_NAME := claude-code-cli
 SAMPLE_DIR := sample_project
+PIPX_BIN ?= $(HOME)/.local/bin
 
 .PHONY: help sync lock run run-local run-sample pipx-install pipx-reinstall pipx-uninstall pipx-list ensurepath clean check
 
@@ -31,7 +32,7 @@ run-local:
 	uv run $(APP_NAME)
 
 run-sample:
-	cd $(SAMPLE_DIR) && $(APP_NAME)
+	cd $(SAMPLE_DIR) && $(PIPX_BIN)/$(APP_NAME)
 
 pipx-install:
 	pipx install . --python $(PYTHON_VERSION)
