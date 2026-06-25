@@ -2,8 +2,7 @@ from pathlib import Path
 from dataclasses import dataclass
 
 
-from tree_sitter import Language, Parser
-from tree_sitter_languages import get_language, get_parser
+from tree_sitter_language_pack import get_parser
 
 
 from observability.logger import get_logger
@@ -91,12 +90,12 @@ def _parse_with_treesitter(source: str, filepath: str, language_name: str) -> li
   """Parse source with the appropriate tree-sitter grammar and extract named blocks."""
   logger.info(f"Parsing {language_name} file: {filepath}")
   parser = get_parser(language_name)
-  tree = parser.parse(source.encode())
+  tree = parser.parse(source)
   lines = source.splitlines()
 
 
   chunks = []
-  _walk(tree.root_node, source, filepath, chunks, depth=0)
+  _walk(_root_node(tree), source, filepath, chunks, depth=0)
 
 
   # If the AST yielded nothing (e.g. a file with only imports), fall back to line chunks
@@ -114,32 +113,82 @@ def _walk(node, source: str, filepath: str, chunks: list, depth: int):
   Recursively walk the AST. When a named block node is found, record it and stop
   descending — this keeps chunks at the top level and avoids duplicating nested functions.
   """
-  if node.type in BLOCK_NODE_TYPES:
+  node_type = _node_type(node)
+  if node_type in BLOCK_NODE_TYPES:
       name = _extract_name(node, source)
-      content = source[node.start_byte:node.end_byte]
-      chunk_type = "class" if "class" in node.type else "function"
+      content = _node_text(node, source)
+      chunk_type = "class" if "class" in node_type else "function"
+      start_line = _start_line(node)
+      end_line = _end_line(node)
       chunks.append(ParsedChunk(
           name=name,
           type=chunk_type,
           content=content,
           source=filepath,
-          start_line=node.start_point[0] + 1,
-          end_line=node.end_point[0] + 1,
+          start_line=start_line,
+          end_line=end_line,
       ))
-      logger.debug(f"  Found {chunk_type} '{name}' (lines {node.start_point[0]+1}-{node.end_point[0]+1})")
+      logger.debug(f"  Found {chunk_type} '{name}' (lines {start_line}-{end_line})")
       return  # stop here — don't index nested functions/classes as separate chunks
 
 
-  for child in node.children:
+  for child in _children(node):
       _walk(child, source, filepath, chunks, depth + 1)
 
 
 def _extract_name(node, source: str) -> str:
   """Find the identifier child of a block node and return its text as the chunk name."""
-  for child in node.children:
-      if child.type in ("identifier", "name", "property_identifier"):
-          return source[child.start_byte:child.end_byte]
-  return node.type  # fallback to node type if no name found
+  for child in _children(node):
+      if _node_type(child) in ("identifier", "name", "property_identifier"):
+          return _node_text(child, source)
+  return _node_type(node)  # fallback to node type if no name found
+
+
+def _root_node(tree):
+  root = tree.root_node
+  return root() if callable(root) else root
+
+
+def _node_type(node) -> str:
+  node_type = getattr(node, "type", None)
+  if node_type is not None:
+      return node_type
+  return node.kind()
+
+
+def _children(node):
+  children = getattr(node, "children", None)
+  if children is not None:
+      return children
+  return [node.child(index) for index in range(node.child_count())]
+
+
+def _start_byte(node) -> int:
+  value = node.start_byte
+  return value() if callable(value) else value
+
+
+def _end_byte(node) -> int:
+  value = node.end_byte
+  return value() if callable(value) else value
+
+
+def _node_text(node, source: str) -> str:
+  return source.encode("utf-8")[_start_byte(node):_end_byte(node)].decode("utf-8", errors="ignore")
+
+
+def _start_line(node) -> int:
+  point = getattr(node, "start_point", None)
+  if point is not None:
+      return point[0] + 1
+  return node.start_position().row + 1
+
+
+def _end_line(node) -> int:
+  point = getattr(node, "end_point", None)
+  if point is not None:
+      return point[0] + 1
+  return node.end_position().row + 1
 
 
 def _sliding_window(lines: list[str], filepath: str) -> list[ParsedChunk]:
@@ -179,5 +228,3 @@ def get_source_files(repo_path: str, skip_dirs: list[str] = None) -> list[str]:
   ]
   logger.info(f"Found {len(files)} source files in {repo_path}")
   return files
-
-
