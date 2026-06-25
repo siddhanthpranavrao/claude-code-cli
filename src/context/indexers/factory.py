@@ -12,7 +12,7 @@ def get_indexer():
 
 
    if vector_store == "qdrant":
-       from semantic_qdrant import index_codebase
+       from .semantic_qdrant import index_codebase
    else:
        from .semantic_chroma import index_codebase
    return index_codebase
@@ -24,7 +24,7 @@ def get_index_inspector():
 
 
    if vector_store == "qdrant":
-       from semantic_qdrant import show_index
+       from .semantic_qdrant import show_index
    else:
        from .semantic_chroma import show_index
    return show_index

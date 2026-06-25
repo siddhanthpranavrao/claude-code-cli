@@ -12,9 +12,9 @@ def get_retriever():
 
 
    if vector_store == "qdrant":
-       from semantic_qdrant import retrieve
+       from .semantic_qdrant import retrieve
    else:
-       from semantic_chroma import retrieve
+       from .semantic_chroma import retrieve
 
 
    return retrieve

@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
 from rich.prompt import Prompt
 import chromadb
 
@@ -43,6 +45,18 @@ def initialize():
    return llm, embedder, index
 
 
+def show_agent_response(response: str) -> None:
+   """Render the agent's final answer as a distinct CLI block."""
+   console.print()
+   console.print(Panel(
+       Markdown(response),
+       title="[bold green]Answer[/bold green]",
+       border_style="green",
+       padding=(1, 2),
+   ))
+   console.print()
+
+
 def run():
    logger.info("Starting Educosys Claude")
    console.print("\n[bold blue]Educosys Claude[/bold blue] — RAG-powered code assistant")
@@ -67,7 +81,7 @@ def run():
            logger.info(f"Ask command received: {question}")
            console.print(f"[dim]Searching for: {question}...[/dim]")
            response = handle_query(question)
-           console.print(response)
+           show_agent_response(response)
        elif user_input == "/show_semantic_index":
            logger.info("Showing semantic index")
            get_index_inspector()(index)

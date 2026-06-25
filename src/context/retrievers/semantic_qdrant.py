@@ -2,9 +2,9 @@ import os
 from langchain_qdrant import QdrantVectorStore
 
 
-from educosys_claude.config import config
-from educosys_claude.llm.factory import get_embedder
-from educosys_claude.observability.logger import get_logger
+from config import config
+from llm.factory import get_embedder
+from observability.logger import get_logger
 
 
 logger = get_logger(__name__)

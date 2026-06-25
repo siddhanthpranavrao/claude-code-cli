@@ -4,10 +4,10 @@ from langchain_core.documents import Document
 from qdrant_client import QdrantClient
 
 
-from educosys_claude.config import config
-from educosys_claude.context.indexers.code_parser import parse_file, get_source_files
-from educosys_claude.llm.factory import get_embedder
-from educosys_claude.observability.logger import get_logger
+from config import config
+from context.indexers.code_parser import parse_file, get_source_files
+from llm.factory import get_embedder
+from observability.logger import get_logger
 
 
 logger = get_logger(__name__)
