@@ -28,3 +28,6 @@ qdrant:
 elasticsearch:
  url: http://localhost:9200
  index_name: codebase
+
+memory:
+ db_path: .memory/memory.db
