@@ -31,3 +31,5 @@ elasticsearch:
 
 memory:
  db_path: .memory/memory.db
+ summarize_at_tokens: 4000
+ keep_last_messages: 20
